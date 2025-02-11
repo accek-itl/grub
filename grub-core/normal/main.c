@@ -340,7 +340,7 @@ grub_try_normal (const char *variable)
          return GRUB_ERR_FILE_NOT_FOUND;
 
        grub_snprintf (config, config_len, "%s/grub.cfg", prefix);
-       err = grub_net_search_config_file (config);
+       err = grub_net_search_config_file (config, config_len);
       }
 
     if (err != GRUB_ERR_NONE)
