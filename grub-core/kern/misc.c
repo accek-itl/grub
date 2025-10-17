@@ -27,6 +27,7 @@
 #include <grub/types.h>
 #include <grub/charset.h>
 #include <grub/backtrace.h>
+#include <stddef.h>
 
 union printf_arg
 {
@@ -783,6 +784,9 @@ parse_printf_arg_fmt (const char *fmt0, struct printf_args *args,
   COMPILE_TIME_ASSERT (sizeof (long) <= sizeof (long long));
   COMPILE_TIME_ASSERT (sizeof (long long) == sizeof (void *)
 		       || sizeof (int) == sizeof (void *));
+  COMPILE_TIME_ASSERT (sizeof (size_t) == sizeof (unsigned)
+		       || sizeof (size_t) == sizeof (unsigned long)
+		       || sizeof (size_t) == sizeof (unsigned long long));
 
   fmt = fmt0;
   while ((c = *fmt++) != 0)
@@ -817,11 +821,17 @@ parse_printf_arg_fmt (const char *fmt0, struct printf_args *args,
 	fmt++;
 
       c = *fmt++;
+      if (c == 'z')
+	{
+	  c = *fmt++;
+	  goto do_count;
+	}
       if (c == 'l')
 	c = *fmt++;
       if (c == 'l')
 	c = *fmt++;
 
+ do_count:
       switch (c)
 	{
 	case 'p':
@@ -918,6 +928,14 @@ parse_printf_arg_fmt (const char *fmt0, struct printf_args *args,
 	  continue;
 	}
 
+      if (c == 'z')
+	{
+	  c = *fmt++;
+	  if (sizeof (size_t) == sizeof (unsigned long))
+	    longfmt = 1;
+	  else if (sizeof (size_t) == sizeof (unsigned long long))
+	    longfmt = 2;
+	}
       if (c == 'l')
 	{
 	  c = *fmt++;
@@ -1094,6 +1112,8 @@ grub_vsnprintf_real (char *str, grub_size_t max_len, const char *fmt0,
 	}
 
       c = *fmt++;
+      if (c == 'z')
+	c = *fmt++;
       if (c == 'l')
 	c = *fmt++;
       if (c == 'l')
