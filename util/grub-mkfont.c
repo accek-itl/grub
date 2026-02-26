@@ -70,7 +70,7 @@
 #define GSUB_PTR_VALID(x, end)	assert ((grub_uint8_t *) (x) <= (end))
 
 #define GSUB_ARRAY_SIZE_VALID(a, sz, end) \
-    assert ((sz) >= 0 && ((sz) <= ((end) - (grub_uint8_t *) (a)) / sizeof (*(a))))
+    assert ((sz) >= 0 && ((size_t)(sz) <= ((end) - (grub_uint8_t *) (a)) / sizeof (*(a))))
 
 struct grub_glyph_info
 {

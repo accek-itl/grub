@@ -26,6 +26,10 @@
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
+/* Forward declarations silence -Wmissing-prototypes for GRUB_MOD_INIT/FINI. */
+void grub_backtrace_init (void);
+void grub_backtrace_fini (void);
+
 void
 grub_backtrace_print_address (void *addr)
 {

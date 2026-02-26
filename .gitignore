@@ -279,3 +279,9 @@ widthspec.bin
 /xfs_test
 /xzcompress_test
 /zfs_test
+
+/.cache
+/build
+/grub-core/lib/libtasn1-grub/
+/grub-core/tests/asn1/tests/
+/docs/version-dev.texi

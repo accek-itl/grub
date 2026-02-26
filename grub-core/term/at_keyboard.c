@@ -93,14 +93,6 @@ at_command (grub_uint8_t data)
   return (i != GRUB_AT_TRIES);
 }
 
-static void
-grub_keyboard_controller_write (grub_uint8_t c)
-{
-  at_command (KEYBOARD_COMMAND_WRITE);
-  keyboard_controller_wait_until_ready ();
-  grub_outb (c, KEYBOARD_REG_DATA);
-}
-
 #if defined (GRUB_MACHINE_MIPS_LOONGSON) || defined (GRUB_MACHINE_QEMU) || defined (GRUB_MACHINE_COREBOOT) || defined (GRUB_MACHINE_MIPS_QEMU_MIPS)
 #define USE_SCANCODE_SET 1
 #else
@@ -115,6 +107,16 @@ grub_keyboard_controller_read (void)
   at_command (KEYBOARD_COMMAND_READ);
   keyboard_controller_wait_until_ready ();
   return grub_inb (KEYBOARD_REG_DATA);
+}
+
+#else
+
+static void
+grub_keyboard_controller_write (grub_uint8_t c)
+{
+  at_command (KEYBOARD_COMMAND_WRITE);
+  keyboard_controller_wait_until_ready ();
+  grub_outb (c, KEYBOARD_REG_DATA);
 }
 
 #endif
@@ -170,7 +172,7 @@ query_mode (void)
   grub_uint64_t endtime;
   unsigned i;
   int e;
-  char *envvar;
+  const char *envvar;
 
   for (i = 0; i < GRUB_AT_TRIES; i++) {
     grub_dprintf ("atkeyb", "query_mode: sending command to controller\n");

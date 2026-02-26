@@ -124,8 +124,8 @@ get_device_uuid(const char *name, char** quid)
   return ret;
 }
 struct uuid_context {
-  char* name;
-  char* uuid;
+  const char *name;
+  const char *uuid;
 };
 
 static int
@@ -203,12 +203,9 @@ iterate_device (const char *name, void *data)
             if (root_disk != NULL && *root_disk != '\0' &&
     	        name_disk != NULL && *name_disk != '\0')
               {
-                grub_device_t dev, dev_part;
-
                 if (is_device_usb(name) && !is_device_usb(root_dev))
                   {
                     char *quid_name = NULL;
-                    int longlist = 0;
                     struct uuid_context uuid_ctx;
                     int ret = 0;
 

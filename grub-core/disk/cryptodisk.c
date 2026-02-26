@@ -16,6 +16,7 @@
  *  along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "grub/types.h"
 #include <grub/cryptodisk.h>
 #include <grub/env.h>
 #include <grub/mm.h>
@@ -737,7 +738,7 @@ grub_cryptodisk_open (const char *name, grub_disk_t disk)
 
       /* Use the sector size and count of the cheat device. */
       cheat_dev_size = grub_util_get_fd_size (dev->cheat_fd, dev->cheat, &cheat_log_sector_size);
-      if (cheat_dev_size == -1)
+      if (cheat_dev_size == (grub_uint64_t)-1)
         {
           const char *errmsg = grub_util_fd_strerror ();
           grub_util_fd_close (dev->cheat_fd);
