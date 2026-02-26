@@ -165,6 +165,22 @@ open_card (struct grub_net_card *dev)
    */
   net = grub_efi_open_protocol (dev->efi_handle, &net_io_guid,
 				GRUB_EFI_OPEN_PROTOCOL_BY_EXCLUSIVE);
+
+  if (net == NULL)
+    {
+      /*
+       * In some PXE + chainload scenarios the SNP handle is already opened
+       * and firmware refuses an exclusive reopen (often manifests as
+       * "%s: can't open protocol"). Fall back to a non-exclusive open so we
+       * can reuse the existing PXE-provided SNP instance.
+       *
+       * Note: We still prefer BY_EXCLUSIVE when it works, since it can
+       * implicitly tear down competing MNP instances.
+       */
+      net = grub_efi_open_protocol (dev->efi_handle, &net_io_guid,
+                                    GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+    }
+
   if (net != NULL)
     {
       if (net->mode->state == GRUB_EFI_NETWORK_STOPPED
