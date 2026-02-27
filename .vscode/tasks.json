@@ -2,11 +2,29 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Generate compile_commands.json",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "if command -v bear >/dev/null 2>&1; then bear -- ./build.sh; elif command -v intercept-build >/dev/null 2>&1; then intercept-build ./build.sh; else echo 'Install bear or intercept-build to generate compile_commands.json'; exit 1; fi"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Build (build/build.sh)",
       "type": "shell",
       "command": "./build.sh",
       "options": {
-        "cwd": "${workspaceFolder}/build"
+        "cwd": "${workspaceFolder}"
       },
       "group": {
         "kind": "build",

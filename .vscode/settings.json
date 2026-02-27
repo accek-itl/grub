@@ -1,8 +1,16 @@
 {
+  "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
   "C_Cpp.intelliSenseEngine": "disabled",
+  "files.exclude": {
+    "**/.git": true,
+    "build/include/**": false
+  },
+  "editor.tabSize": 8,
   "git.alwaysSignOff": true,
   "clangd.arguments": [
     "--compile-commands-dir=${workspaceFolder}/build"
-  ]
+  ],
+"editor.detectIndentation": false,
+"editor.indentSize": 2
 }

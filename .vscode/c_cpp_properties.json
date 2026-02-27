@@ -1,0 +1,34 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "c11",
+      "cppStandard": "c17",
+      "intelliSenseMode": "gcc-x64",
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/grub-core",
+        "${workspaceFolder}/build",
+        "${workspaceFolder}/build/include",
+        "${workspaceFolder}/build/grub-core",
+        "${workspaceFolder}/build-aux",
+        "${workspaceFolder}/gnulib",
+        "${workspaceFolder}/util"
+      ],
+      "defines": [
+        "_FILE_OFFSET_BITS=64"
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}/include",
+          "${workspaceFolder}/grub-core",
+          "${workspaceFolder}/build"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ],
+  "version": 4
+}
