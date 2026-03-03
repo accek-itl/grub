@@ -574,7 +574,7 @@ static grub_err_t
 init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header *sinit)
 {
   grub_uint8_t *txt_heap;
-  grub_uint32_t os_sinit_data_ver, sinit_caps;
+  grub_uint32_t os_sinit_data_ver, min_mle_header_ver, sinit_caps;
   grub_uint64_t *size;
   struct grub_txt_os_mle_data *os_mle_data;
   struct grub_txt_os_sinit_data *os_sinit_data;
@@ -638,6 +638,9 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
     return grub_error (GRUB_ERR_BAD_DEVICE,
 		       N_("unsupported OS to SINIT data version in SINIT ACM: %d"
 		       " expected >= %d"), os_sinit_data_ver, OS_SINIT_DATA_MIN_VER);
+
+  min_mle_header_ver = grub_txt_min_supported_mle_header_ver (sinit);
+  grub_dprintf ("slaunch", "SINIT min supported MLE header version: 0x%08x\n", min_mle_header_ver);
 
   os_sinit_data = grub_txt_os_sinit_data_start (txt_heap);
   size = (grub_uint64_t *) ((grub_addr_t) os_sinit_data - sizeof (grub_uint64_t));

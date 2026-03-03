@@ -646,6 +646,7 @@ grub_txt_getsec_parameters (grub_uint32_t index, grub_uint32_t *eax_out,
 }
 
 extern grub_uint32_t grub_txt_supported_os_sinit_data_ver (struct grub_txt_acm_header* hdr);
+extern grub_uint32_t grub_txt_min_supported_mle_header_ver (struct grub_txt_acm_header* hdr);
 
 extern grub_uint32_t grub_txt_get_sinit_capabilities (struct grub_txt_acm_header* hdr);
 
