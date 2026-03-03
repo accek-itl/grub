@@ -156,6 +156,12 @@ GRUB_MOD_INIT (tpm)
   cmd_tpm_type = grub_register_command ("tpm_type", grub_cmd_tpm_type,
 					NULL, N_("Show TPM version and interface type."));
 
+  intf_id.raw = grub_readl ((void *)(grub_addr_t) (TPM_MMIO_BASE + TPM_INTERFACE_ID));
+
+  if (intf_id.interface_type == TPM_CRB_INTF_ACTIVE) {
+    tpm_ver = GRUB_TPM_20;
+    tpm_intf = TPM_INTF_CRB;
+  } else {
   intf_cap.raw = grub_readl ((void *)(grub_addr_t) (TPM_MMIO_BASE + TPM_INTF_CAPABILITY));
 
   if (intf_cap.interface_version == TPM_12_TIS_INTF_12 ||
@@ -170,10 +176,8 @@ GRUB_MOD_INIT (tpm)
     return;
 
   tpm_ver = GRUB_TPM_20;
-
-  intf_id.raw = grub_readl ((void *)(grub_addr_t) (TPM_MMIO_BASE + TPM_INTERFACE_ID));
-
-  tpm_intf = (intf_id.interface_type == TPM_CRB_INTF_ACTIVE) ? TPM_INTF_CRB : TPM_INTF_TIS;
+    tpm_intf = TPM_INTF_TIS;
+  }
 }
 
 GRUB_MOD_FINI (tpm)
