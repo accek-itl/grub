@@ -39,6 +39,7 @@ GRUB_MOD_LICENSE ("GPLv3+");
 #define TPM_INTERFACE_ID	0x0030
 
 /* CRB registers. */
+#define TPM_LOC_STATE		0x0000
 #define TPM_LOC_CTRL		0x0008
 
 #define TPM_12_TIS_INTF_12	0x0
@@ -46,6 +47,9 @@ GRUB_MOD_LICENSE ("GPLv3+");
 #define TPM_20_TIS_INTF_13	0x3
 
 #define TPM_CRB_INTF_ACTIVE	0x1
+
+#define TPM_CRB_LOC_STATE_LOC_ASSIGNED      0x00000002
+#define TPM_CRB_LOC_STATE_TPM_REG_VALID_STS 0x00000080
 
 #define TIS_RELINQUISH_LCL	0x20
 #define CRB_RELINQUISH_LCL	0x0002
@@ -111,16 +115,26 @@ grub_get_tpm_ver (void)
   return tpm_ver;
 }
 
+static void grub_tpm_relinquish_locality_tis(grub_phys_addr_t addr) {
+  grub_writeb (TIS_RELINQUISH_LCL, (void *) (addr + TPM_ACCESS));
+}
+
+static void grub_tpm_relinquish_locality_crb(grub_phys_addr_t addr) {
+  grub_writel (CRB_RELINQUISH_LCL, (void *) (addr + TPM_LOC_CTRL));
+  while ((grub_readl ((void *) (addr + TPM_LOC_STATE)) & (TPM_CRB_LOC_STATE_TPM_REG_VALID_STS | TPM_CRB_LOC_STATE_LOC_ASSIGNED)) != TPM_CRB_LOC_STATE_TPM_REG_VALID_STS)
+    ;
+}
+
 /* Localities 0-4 are supported only. */
 void
 grub_tpm_relinquish_locality (grub_uint8_t lcl)
 {
-  grub_addr_t addr = TPM_MMIO_BASE + lcl * GRUB_PAGE_SIZE;
-
-  if (tpm_intf == TPM_INTF_TIS)
-    grub_writeb (TIS_RELINQUISH_LCL, (void *) (addr + TPM_ACCESS));
-  else if (tpm_intf == TPM_INTF_CRB)
-    grub_writel (CRB_RELINQUISH_LCL, (void *) (addr + TPM_LOC_CTRL));
+  grub_phys_addr_t addr = TPM_MMIO_BASE + lcl * GRUB_PAGE_SIZE;
+  if (tpm_intf == TPM_INTF_TIS) {
+    grub_tpm_relinquish_locality_tis(addr);
+  } else if (tpm_intf == TPM_INTF_CRB) {
+    grub_tpm_relinquish_locality_crb(addr);
+  }
 }
 
 static grub_err_t
@@ -162,20 +176,20 @@ GRUB_MOD_INIT (tpm)
     tpm_ver = GRUB_TPM_20;
     tpm_intf = TPM_INTF_CRB;
   } else {
-  intf_cap.raw = grub_readl ((void *)(grub_addr_t) (TPM_MMIO_BASE + TPM_INTF_CAPABILITY));
+    intf_cap.raw = grub_readl ((void *)(grub_addr_t) (TPM_MMIO_BASE + TPM_INTF_CAPABILITY));
 
-  if (intf_cap.interface_version == TPM_12_TIS_INTF_12 ||
-      intf_cap.interface_version == TPM_12_TIS_INTF_13)
-    {
-      tpm_ver = GRUB_TPM_12;
-      tpm_intf = TPM_INTF_TIS;
+    if (intf_cap.interface_version == TPM_12_TIS_INTF_12 ||
+        intf_cap.interface_version == TPM_12_TIS_INTF_13)
+      {
+        tpm_ver = GRUB_TPM_12;
+        tpm_intf = TPM_INTF_TIS;
+        return;
+      }
+
+    if (intf_cap.interface_version != TPM_20_TIS_INTF_13)
       return;
-    }
 
-  if (intf_cap.interface_version != TPM_20_TIS_INTF_13)
-    return;
-
-  tpm_ver = GRUB_TPM_20;
+    tpm_ver = GRUB_TPM_20;
     tpm_intf = TPM_INTF_TIS;
   }
 }
