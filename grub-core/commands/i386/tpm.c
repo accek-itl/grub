@@ -49,8 +49,10 @@ GRUB_MOD_LICENSE ("GPLv3+");
 #define INTERFACE_ID_INTERFACE_TYPE_MASK        0xF
 
 /* CRB registers. */
-#define TPM_LOC_CTRL            0x0008
-
+#define TPM_LOC_STATE		0x0000
+#define TPM_LOC_CTRL		0x0008
+#define TPM_CRB_LOC_STATE_LOC_ASSIGNED      0x00000002
+#define TPM_CRB_LOC_STATE_TPM_REG_VALID_STS 0x00000080
 
 #define TIS_RELINQUISH_LCL      0x20
 #define CRB_RELINQUISH_LCL      0x0002
@@ -80,16 +82,26 @@ grub_get_tpm_ver (void)
   return tpm_ver;
 }
 
-/* Only localities 0-4 are supported. */
+static void grub_tpm_relinquish_locality_tis(grub_phys_addr_t addr) {
+  grub_write8 (TIS_RELINQUISH_LCL, addr + TPM_ACCESS);
+}
+
+static void grub_tpm_relinquish_locality_crb(grub_phys_addr_t addr) {
+  grub_write32 (CRB_RELINQUISH_LCL, addr + TPM_LOC_CTRL);
+  while ((grub_read32 (addr + TPM_LOC_STATE) & (TPM_CRB_LOC_STATE_TPM_REG_VALID_STS | TPM_CRB_LOC_STATE_LOC_ASSIGNED)) != TPM_CRB_LOC_STATE_TPM_REG_VALID_STS)
+    ;
+}
+
+/* Localities 0-4 are supported only. */
 void
 grub_tpm_relinquish_locality (grub_uint8_t lcl)
 {
-  grub_addr_t addr = TPM_MMIO_BASE + lcl * GRUB_PAGE_SIZE;
-
-  if (tpm_intf == TPM_INTF_TIS)
-    grub_write8 (TIS_RELINQUISH_LCL, addr + TPM_ACCESS);
-  else if (tpm_intf == TPM_INTF_CRB)
-    grub_write32 (CRB_RELINQUISH_LCL, addr + TPM_LOC_CTRL);
+  grub_phys_addr_t addr = TPM_MMIO_BASE + lcl * GRUB_PAGE_SIZE;
+  if (tpm_intf == TPM_INTF_TIS) {
+    grub_tpm_relinquish_locality_tis(addr);
+  } else if (tpm_intf == TPM_INTF_CRB) {
+    grub_tpm_relinquish_locality_crb(addr);
+  }
 }
 
 static grub_err_t
