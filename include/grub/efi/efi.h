@@ -84,6 +84,7 @@ grub_err_t EXPORT_FUNC (grub_efi_finish_boot_services) (grub_efi_uintn_t *outbuf
 							grub_efi_uintn_t *map_key,
 							grub_efi_uintn_t *efi_desc_size,
 							grub_efi_uint32_t *efi_desc_version);
+void EXPORT_FUNC (grub_efi_mark_finished) (void);
 grub_err_t EXPORT_FUNC (grub_efi_set_virtual_address_map) (grub_efi_uintn_t memory_map_size,
 							   grub_efi_uintn_t descriptor_size,
 							   grub_efi_uint32_t descriptor_version,

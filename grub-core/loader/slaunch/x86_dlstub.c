@@ -25,6 +25,7 @@
 #include <grub/slr_table.h>
 #include <grub/slaunch.h>
 #include <grub/cpu/relocator.h>
+#include <grub/efi/efi.h>
 #include <grub/i386/msr.h>
 #include <grub/i386/mmio.h>
 #include <grub/i386/tpm.h>
@@ -40,6 +41,10 @@ void dl_entry (grub_uint64_t dl_ctx)
   struct grub_slaunch_params *slparams = (struct grub_slaunch_params *)bl_ctx->context;
   struct grub_relocator32_state state;
   grub_err_t err;
+
+#ifdef GRUB_MACHINE_EFI
+  grub_efi_mark_finished();
+#endif
 
   grub_tpm_relinquish_locality(0);
 

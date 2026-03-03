@@ -283,7 +283,7 @@ grub_efi_finish_boot_services (grub_efi_uintn_t *outbuf_size, void *outbuf,
       finish_mmap_buf = NULL;
       grub_printf ("Trying to terminate EFI services again\n");
     }
-  grub_efi_is_finished = 1;
+  grub_efi_mark_finished ();
   if (outbuf_size)
     *outbuf_size = finish_mmap_size;
   if (outbuf)
@@ -301,6 +301,12 @@ grub_efi_finish_boot_services (grub_efi_uintn_t *outbuf_size, void *outbuf,
 #endif
 
   return GRUB_ERR_NONE;
+}
+
+void
+grub_efi_mark_finished (void)
+{
+  grub_efi_is_finished = 1;
 }
 
 /*
