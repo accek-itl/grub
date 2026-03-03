@@ -575,7 +575,10 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
 {
   grub_uint8_t *txt_heap;
   grub_uint32_t os_sinit_data_ver, min_mle_header_ver, sinit_caps;
+  bool tpr_support;
   grub_uint64_t *size;
+  grub_uint64_t dma_lo_base, dma_lo_size, dma_hi_base, dma_hi_size;
+  grub_uint32_t tpr_cnt;
   struct grub_txt_os_mle_data *os_mle_data;
   struct grub_txt_os_sinit_data *os_sinit_data;
   struct grub_txt_heap_end_element *heap_end_element;
@@ -642,6 +645,39 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
   min_mle_header_ver = grub_txt_min_supported_mle_header_ver (sinit);
   grub_dprintf ("slaunch", "SINIT min supported MLE header version: 0x%08x\n", min_mle_header_ver);
 
+  sinit_caps = grub_txt_get_sinit_capabilities (sinit);
+
+  tpr_support = (sinit_caps & GRUB_TXT_CAPS_TPR_SUPPORT) != 0;
+  grub_dprintf ("slaunch", "SINIT ACM %s TPR support\n",
+		tpr_support ? "has" : "does not have");
+
+  /* Compute DMA protection ranges from the memory map (used by both PMR and TPR) */
+  /* TODO: Check low range with RMRR. Look at relevant tboot code too. */
+  /* TODO: The sizes are rounded down to not DMA-block any BIOS-controller regions; but
+           we need to make the non-protected regions reserved then */
+  dma_lo_base = 0;
+  dma_lo_size = ALIGN_DOWN (grub_mmap_get_highest (0x100000000), GRUB_TXT_PMR_ALIGN);
+  dma_hi_base = ALIGN_DOWN (grub_mmap_get_lowest (0x100000000), GRUB_TXT_PMR_ALIGN);
+  if (dma_hi_base == (grub_addr_t)-1)
+    {
+        /* No memory above 4GB, so no high DMA protection range */
+        dma_hi_base = 0;
+        dma_hi_size = 0;
+    }
+  else
+    {
+      dma_hi_size = ALIGN_DOWN (grub_mmap_get_highest (0xffffffffffffffff),
+                                GRUB_TXT_PMR_ALIGN) - dma_hi_base;
+    }
+
+  tpr_cnt = (dma_hi_size > 0) ? 2 : 1;
+
+  grub_dprintf ("slaunch",
+		"DMA protection lo_base: 0x%" PRIxGRUB_UINT64_T " lo_size: 0x%"
+		PRIxGRUB_UINT64_T " hi_base: 0x%" PRIxGRUB_UINT64_T
+		" hi_size: 0x%" PRIxGRUB_UINT64_T "\n",
+		dma_lo_base, dma_lo_size, dma_hi_base, dma_hi_size);
+
   os_sinit_data = grub_txt_os_sinit_data_start (txt_heap);
   size = (grub_uint64_t *) ((grub_addr_t) os_sinit_data - sizeof (grub_uint64_t));
 
@@ -654,6 +690,10 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
     *size += sizeof (struct grub_txt_heap_event_log_pointer2_1_element);
   else
     return grub_error (GRUB_ERR_BAD_DEVICE, N_("unsupported TPM version"));
+
+  if (tpr_support)
+    *size += sizeof (struct grub_txt_heap_tpr_req_element) +
+	     tpr_cnt * sizeof (struct grub_txt_heap_tpr_range);
 
   grub_memset (os_sinit_data, 0, *size);
 
@@ -671,26 +711,14 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
 
   os_sinit_data->mle_hdr_base = slparams->mle_header_offset;
 
-  /* TODO: Check low PMR with RMRR. Look at relevant tboot code too. */
-  /* TODO: Kernel should not allocate any memory outside of PMRs regions!!! */
-  os_sinit_data->vtd_pmr_lo_base = 0;
-  os_sinit_data->vtd_pmr_lo_size = ALIGN_DOWN (grub_mmap_get_highest (0x100000000),
-					       GRUB_TXT_PMR_ALIGN);
-
-  os_sinit_data->vtd_pmr_hi_base = ALIGN_UP (grub_mmap_get_lowest (0x100000000),
-					     GRUB_TXT_PMR_ALIGN);
-  os_sinit_data->vtd_pmr_hi_size = ALIGN_DOWN (grub_mmap_get_highest (0xffffffffffffffff),
-					       GRUB_TXT_PMR_ALIGN);
-  os_sinit_data->vtd_pmr_hi_size -= os_sinit_data->vtd_pmr_hi_base;
-
-  grub_dprintf ("slaunch",
-		"vtd_pmr_lo_base: 0x%" PRIxGRUB_UINT64_T " vtd_pmr_lo_size: 0x%"
-		PRIxGRUB_UINT64_T " vtd_pmr_hi_base: 0x%" PRIxGRUB_UINT64_T
-		" vtd_pmr_hi_size: 0x%" PRIxGRUB_UINT64_T "\n",
-		os_sinit_data->vtd_pmr_lo_base, os_sinit_data->vtd_pmr_lo_size,
-		os_sinit_data->vtd_pmr_hi_base, os_sinit_data->vtd_pmr_hi_size);
-
-  sinit_caps = grub_txt_get_sinit_capabilities (sinit);
+  if (!tpr_support)
+    {
+      /* Legacy PMR path: fill vtd_pmr fields for DMA protection */
+      os_sinit_data->vtd_pmr_lo_base = dma_lo_base;
+      os_sinit_data->vtd_pmr_lo_size = dma_lo_size;
+      os_sinit_data->vtd_pmr_hi_base = dma_hi_base;
+      os_sinit_data->vtd_pmr_hi_size = dma_hi_size;
+    }
 
   /* CBnT bits 5:4 must be 11b, since D/A mapping is the only one supported. */
   os_sinit_data->capabilities = GRUB_TXT_CAPS_TPM_12_NO_LEGACY_PCR_USAGE |
@@ -707,6 +735,11 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
   if (sinit_caps & GRUB_TXT_CAPS_ECX_PT_SUPPORT)
     os_sinit_data->capabilities |= GRUB_TXT_CAPS_ECX_PT_SUPPORT;
 
+  if (tpr_support)
+    os_sinit_data->capabilities |= GRUB_TXT_CAPS_TPR_SUPPORT;
+
+  void *next_elt = os_sinit_data->ext_data_elts;
+
   if (grub_get_tpm_ver () == GRUB_TPM_12)
     return grub_error (GRUB_ERR_BAD_DEVICE, N_("TPM 1.2 is not supported"));
   else
@@ -716,15 +749,14 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
 			   N_("original TXT TPM 2.0 event log format is not supported"));
 
       os_sinit_data->capabilities |= GRUB_TXT_CAPS_TPM_20_EVTLOG_SUPPORT;
-
       os_sinit_data->flags = GRUB_TXT_PCR_EXT_MAX_PERF_POLICY;
-
       os_sinit_data->version = OS_SINIT_DATA_TPM_20_VER;
 
       heap_event_log_pointer2_1_element =
-	(struct grub_txt_heap_event_log_pointer2_1_element *) os_sinit_data->ext_data_elts;
+	(struct grub_txt_heap_event_log_pointer2_1_element *) next_elt;
       heap_event_log_pointer2_1_element->type = GRUB_TXT_HEAP_EXTDATA_TYPE_EVENT_LOG_POINTER2_1;
       heap_event_log_pointer2_1_element->size = sizeof (*heap_event_log_pointer2_1_element);
+      next_elt = (void *)((grub_addr_t)next_elt + heap_event_log_pointer2_1_element->size);
 
       /* FIXME: First option is correct way to do!!! */
 #if 1
@@ -734,13 +766,28 @@ init_txt_heap (struct grub_slaunch_params *slparams, struct grub_txt_acm_header 
       heap_event_log_pointer2_1_element->phys_addr = (grub_addr_t) &os_mle_data->event_log_buffer;
       heap_event_log_pointer2_1_element->allocated_event_container_size = sizeof (os_mle_data->event_log_buffer);
 #endif
-
-      heap_end_element = (struct grub_txt_heap_end_element *)
-	((grub_addr_t) heap_event_log_pointer2_1_element + heap_event_log_pointer2_1_element->size);
-      heap_end_element->type = GRUB_TXT_HEAP_EXTDATA_TYPE_END;
-      heap_end_element->size = sizeof (*heap_end_element);
     }
 
+  if (tpr_support)
+    {
+      struct grub_txt_heap_tpr_req_element *tpr_req =
+        (struct grub_txt_heap_tpr_req_element *) next_elt;
+      tpr_req->type = GRUB_TXT_HEAP_EXTDATA_TYPE_TPR_REQ;
+      tpr_req->size = sizeof (*tpr_req) + tpr_cnt * sizeof (struct grub_txt_heap_tpr_range);
+      next_elt = (void *)((grub_addr_t)next_elt + tpr_req->size);
+      tpr_req->tpr_cnt = tpr_cnt;
+      tpr_req->tpr_req_arr[0].tpr_range_base = dma_lo_base;
+      tpr_req->tpr_req_arr[0].tpr_range_size = dma_lo_size;
+      if (tpr_cnt > 1)
+        {
+          tpr_req->tpr_req_arr[1].tpr_range_base = dma_hi_base;
+          tpr_req->tpr_req_arr[1].tpr_range_size = dma_hi_size;
+        }
+    }
+
+  heap_end_element = (struct grub_txt_heap_end_element *) next_elt;
+  heap_end_element->type = GRUB_TXT_HEAP_EXTDATA_TYPE_END;
+  heap_end_element->size = sizeof (*heap_end_element);
   /*
    * TODO: TXT spec: Note: BiosDataSize + OsMleDataSize + OsSinitDataSize + SinitMleDataSize
    * must be less than or equal to TXT.HEAP.SIZE, TXT spec, p. 102.

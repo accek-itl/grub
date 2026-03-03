@@ -43,7 +43,7 @@
 #define GRUB_TXT_CAPS_MAXPHYSADDR_SUPPORT	(1<<8)
 #define GRUB_TXT_CAPS_TPM_20_EVTLOG_SUPPORT	(1<<9)
 #define GRUB_TXT_CAPS_CBNT_SUPPORT		(1<<10)
-/* Rest is reserved */
+#define GRUB_TXT_CAPS_TPR_SUPPORT		(1<<14)
 
 /* Appendix A TXT Execution Technology Authenticated Code Modules */
 /* A.1 Authenticated Code Module Format */
@@ -317,6 +317,22 @@ struct grub_txt_heap_event_log_pointer2_1_element
   grub_uint32_t allocated_event_container_size;
   grub_uint32_t first_record_offset;
   grub_uint32_t next_record_offset;
+} GRUB_PACKED;
+
+#define GRUB_TXT_HEAP_EXTDATA_TYPE_TPR_REQ		13
+
+struct grub_txt_heap_tpr_range
+{
+  grub_uint64_t tpr_range_base;
+  grub_uint64_t tpr_range_size;
+} GRUB_PACKED;
+
+struct grub_txt_heap_tpr_req_element
+{
+  grub_uint32_t type;
+  grub_uint32_t size;
+  grub_uint32_t tpr_cnt;
+  struct grub_txt_heap_tpr_range tpr_req_arr[];
 } GRUB_PACKED;
 
 #define GRUB_TXT_HEAP_EXTDATA_TYPE_MCFG			9
