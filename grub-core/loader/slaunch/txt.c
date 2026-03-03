@@ -68,6 +68,7 @@
 #include <grub/i386/memory.h>
 #include <grub/i386/tpm.h>
 #include <grub/i386/txt.h>
+#include <grub/i386/vtd.h>
 
 #define OS_SINIT_DATA_TPM_12_VER	6
 #define OS_SINIT_DATA_TPM_20_VER	7
@@ -503,6 +504,60 @@ grub_set_mtrrs_for_acmod (struct grub_txt_acm_header *hdr)
   return GRUB_ERR_NONE;
 }
 
+static grub_err_t
+configure_vtd (void)
+{
+  grub_err_t err;
+  grub_uint32_t remap_length;
+  struct grub_acpi_dmar_remapping *dmar_remap = vtd_get_dmar_remap (&remap_length);
+
+  if (dmar_remap == NULL)
+    {
+      grub_dprintf ("slaunch",
+                    "configure_vtd: cannot get DMAR remapping structures, skipping configuration\n");
+      return GRUB_ERR_NONE;
+    }
+
+  grub_dprintf ("slaunch", "configure_vtd: configuring DMAR remapping\n");
+
+  struct grub_acpi_dmar_remapping *iter, *next;
+  struct grub_acpi_dmar_remapping *end = (struct grub_acpi_dmar_remapping *) ((grub_addr_t)dmar_remap + remap_length);
+  int counter = 0;
+
+  for (iter = dmar_remap; iter < end; iter = next)
+    {
+      next = (struct grub_acpi_dmar_remapping *) ((grub_addr_t)iter + iter->length);
+      if (iter->length == 0)
+      {
+        /* Avoid looping forever on bad ACPI tables */
+        grub_dprintf ("slaunch", "configure_vtd: invalid 0-length structure\n");
+        break;
+      }
+      else if (next > end)
+      {
+        /* Avoid passing table end */
+        grub_dprintf ("slaunch", "configure_vtd: record passes table end\n");
+        break;
+      }
+
+      if (iter->type == GRUB_ACPI_DMAR_REMAPPING_DRHD)
+      {
+        err = vtd_disable_dma_remap (iter);
+        if (err != GRUB_ERR_NONE)
+        {
+          grub_dprintf ("slaunch", "configure_vtd: vtd_disable_dma_remap failed\n");
+          break;
+        }
+        counter++;
+      }
+    }
+
+  if (err == GRUB_ERR_NONE)
+    grub_dprintf ("slaunch", "configure_vtd: successfully disabled %d remappings\n", counter);
+
+  return err;
+}
+
 static void
 set_txt_info_ptr (struct grub_slaunch_params *slparams,
                   struct grub_txt_os_mle_data *os_mle_data)
@@ -911,6 +966,12 @@ grub_txt_boot_prepare (struct grub_slaunch_params *slparams)
     return grub_errno;
 
   err = init_txt_heap (slparams, sinit_base);
+
+  if (err != GRUB_ERR_NONE)
+    return err;
+
+  /* Disable DMA remapping */\
+  err = configure_vtd();
 
   if (err != GRUB_ERR_NONE)
     return err;

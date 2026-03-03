@@ -230,6 +230,43 @@ struct grub_acpi_spcr {
   grub_uint32_t reserved_1;
 } GRUB_PACKED;
 
+struct grub_acpi_dmar_device_scope {
+    grub_uint8_t type;
+    grub_uint8_t length;
+    grub_uint16_t reserved;
+    grub_uint8_t enumeration_id;
+    grub_uint8_t start_bus_number;
+    grub_uint16_t path[];
+} GRUB_PACKED;
+
+struct grub_acpi_dmar_remapping {
+  grub_uint16_t type;
+#define GRUB_ACPI_DMAR_REMAPPING_DRHD     0
+#define GRUB_ACPI_DMAR_REMAPPING_RMRR     1
+#define GRUB_ACPI_DMAR_REMAPPING_ATSR     2
+#define GRUB_ACPI_DMAR_REMAPPING_RHSA     3
+#define GRUB_ACPI_DMAR_REMAPPING_RESERVED 4
+  grub_uint16_t length;
+  grub_uint8_t flags;
+#define GRUB_ACPI_DMAR_REMAPPING_INCLUDE_PCI_ALL 0x01
+  grub_uint8_t reserved;
+  grub_uint16_t segment_number;
+  grub_uint64_t register_base_address;
+  struct grub_acpi_dmar_device_scope device_scope_entry[];
+} GRUB_PACKED;
+
+struct grub_acpi_dmar {
+  struct grub_acpi_table_header hdr;
+  grub_uint8_t host_address_width;
+  grub_uint8_t flags;
+#define GRUB_ACPI_DMAR_INTR_REMAP 0x01
+  grub_uint8_t reserved[10];
+  struct grub_acpi_dmar_remapping table_offsets[];
+} GRUB_PACKED;
+
+#define GRUB_ACPI_DMAR_SIGNATURE "DMAR"
+
+
 #ifndef GRUB_DSDT_TEST
 struct grub_acpi_rsdp_v10 *grub_acpi_get_rsdpv1 (void);
 struct grub_acpi_rsdp_v20 *grub_acpi_get_rsdpv2 (void);
