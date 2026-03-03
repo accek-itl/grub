@@ -355,6 +355,20 @@ grub_txt_supported_os_sinit_data_ver (struct grub_txt_acm_header* hdr)
 }
 
 grub_uint32_t
+grub_txt_min_supported_mle_header_ver (struct grub_txt_acm_header* hdr)
+{
+  static struct grub_txt_acm_info_table *info_table;
+
+  /* Assumes that it passed is_sinit_acmod() */
+  info_table = get_acmod_info_table (hdr);
+
+  if ( info_table == NULL )
+    return 0;
+
+  return info_table->min_mle_header_ver;
+}
+
+grub_uint32_t
 grub_txt_get_sinit_capabilities (struct grub_txt_acm_header* hdr)
 {
   static struct grub_txt_acm_info_table *info_table;
@@ -497,10 +511,12 @@ grub_txt_acmod_match_platform (struct grub_txt_acm_header *hdr)
 
   if ( i >= proc_id_list->count )
     {
+      grub_dprintf("slaunch", "SINIT ACM: Chipset id mismatch\n");
       grub_error (GRUB_ERR_BAD_DEVICE, N_("chipset id mismatch"));
       return 0;
     }
 
+  grub_dprintf("slaunch", "SINIT ACM: matched chipset and processor\n");
   return 1;
 }
 
@@ -548,10 +564,15 @@ grub_txt_sinit_select (struct grub_txt_acm_header *sinit)
 
       grub_dprintf ("slaunch", "BIOS provides older SINIT ACM, so, ignoring BIOS one\n");
     }
+  else {
+    grub_dprintf ("slaunch", "BIOS does not provide an SINIT ACM\n");
+  }
 
   /* Fail if there is no SINIT ACM. */
-  if (sinit == NULL)
+  if (sinit == NULL) {
+    grub_dprintf ("slaunch", "No SINIT available\n");
     return NULL;
+  }
 
   /* Our SINIT ACM is newer than BIOS one or BIOS does not have one. */
 
