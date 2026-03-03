@@ -50,6 +50,8 @@ void dl_entry (grub_uint64_t dl_ctx)
 
   state.edi = slparams->platform_type;
 
+  // FIXME: grub_error can't possibly work here anymore on efi, should write to TXT.ERRORCODE and reboot
+
   if (state.edi == SLP_INTEL_TXT)
     {
       if (slparams->boot_type == GRUB_SL_BOOT_TYPE_EFI)
