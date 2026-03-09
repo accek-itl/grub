@@ -600,6 +600,19 @@ configure_vtd (void)
 
       if (iter->type == GRUB_ACPI_DMAR_REMAPPING_DRHD)
       {
+        /* Disable in order: IR first, then QI, then TE. */
+        err = vtd_disable_ire (iter);
+        if (err != GRUB_ERR_NONE)
+        {
+          grub_dprintf ("slaunch", "configure_vtd: vtd_disable_ire failed\n");
+          break;
+        }
+        err = vtd_disable_qie (iter);
+        if (err != GRUB_ERR_NONE)
+        {
+          grub_dprintf ("slaunch", "configure_vtd: vtd_disable_qie failed\n");
+          break;
+        }
         err = vtd_disable_dma_remap (iter);
         if (err != GRUB_ERR_NONE)
         {

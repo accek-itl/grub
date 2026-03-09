@@ -104,3 +104,58 @@ grub_err_t vtd_disable_dma_remap(struct grub_acpi_dmar_remapping *rs)
 
     return GRUB_ERR_NONE;
 }
+
+grub_err_t vtd_disable_ire(struct grub_acpi_dmar_remapping *rs)
+{
+    if (rs->type != GRUB_ACPI_DMAR_REMAPPING_DRHD)
+        return GRUB_ERR_BAD_ARGUMENT;
+
+    grub_uint32_t timeout;
+    grub_uint32_t gsts = grub_read32(rs->register_base_address + VTD_GSTS_OFFSET) & 0x96FFFFFF;
+
+    if (gsts & IRE_STAT) {
+        gsts &= ~IRE_STAT;
+        grub_write32(gsts, rs->register_base_address + VTD_GCMD_OFFSET);
+
+        timeout = VTD_OPERATION_TIMEOUT;
+        while (grub_read32(rs->register_base_address + VTD_GSTS_OFFSET) & IRE_STAT) {
+            if (--timeout == 0)
+                return GRUB_ERR_TIMEOUT;
+        }
+    }
+
+    return GRUB_ERR_NONE;
+}
+
+grub_err_t vtd_disable_qie(struct grub_acpi_dmar_remapping *rs)
+{
+    if (rs->type != GRUB_ACPI_DMAR_REMAPPING_DRHD)
+        return GRUB_ERR_BAD_ARGUMENT;
+
+    grub_uint32_t timeout;
+    grub_uint32_t gsts = grub_read32(rs->register_base_address + VTD_GSTS_OFFSET) & 0x96FFFFFF;
+
+    if (gsts & QIE_STAT) {
+        /* Wait for HW to complete pending invalidation requests */
+        timeout = VTD_OPERATION_TIMEOUT;
+        while (grub_read64(rs->register_base_address + VTD_IQT_OFFSET) !=
+               grub_read64(rs->register_base_address + VTD_IQH_OFFSET)) {
+            if (--timeout == 0)
+                return GRUB_ERR_TIMEOUT;
+        }
+
+        gsts &= ~QIE_STAT;
+        grub_write32(gsts, rs->register_base_address + VTD_GCMD_OFFSET);
+
+        timeout = VTD_OPERATION_TIMEOUT;
+        while (grub_read32(rs->register_base_address + VTD_GSTS_OFFSET) & QIE_STAT) {
+            if (--timeout == 0)
+                return GRUB_ERR_TIMEOUT;
+        }
+
+        /* Set IQT to 0 (IQH was set by HW) */
+        grub_write64(0, rs->register_base_address + VTD_IQT_OFFSET);
+    }
+
+    return GRUB_ERR_NONE;
+}

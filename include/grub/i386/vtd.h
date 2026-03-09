@@ -76,5 +76,7 @@ extern bool vtd_bios_enabled(void);
 
 extern struct grub_acpi_dmar_remapping *vtd_get_dmar_remap(grub_uint32_t *remap_length);
 extern grub_err_t vtd_disable_dma_remap(struct grub_acpi_dmar_remapping *rs);
+extern grub_err_t vtd_disable_ire(struct grub_acpi_dmar_remapping *rs);
+extern grub_err_t vtd_disable_qie(struct grub_acpi_dmar_remapping *rs);
 
 #endif
