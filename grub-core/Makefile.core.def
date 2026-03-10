@@ -779,7 +779,7 @@ module = {
   common = lib/gnulib/malloc/dynarray_emplace_enlarge.c;
   common = lib/gnulib/malloc/dynarray_resize.c;
   common = lib/gnulib/regex.c;
-  cflags = '$(CFLAGS_POSIX) $(CFLAGS_GNULIB)';
+  cflags = '$(CFLAGS_POSIX) $(CFLAGS_GNULIB) -Wno-sign-compare';
   cppflags = '$(CPPFLAGS_POSIX) $(CPPFLAGS_GNULIB)';
 };
 
@@ -1247,7 +1247,7 @@ module = {
   name = luks2;
   common = disk/luks2.c;
   common = lib/gnulib/base64.c;
-  cflags = '$(CFLAGS_POSIX) $(CFLAGS_GNULIB)';
+  cflags = '$(CFLAGS_POSIX) $(CFLAGS_GNULIB) -Wno-sign-compare -Wno-unterminated-string-initialization';
   cppflags = '$(CPPFLAGS_POSIX) $(CPPFLAGS_GNULIB) -I$(srcdir)/lib/json';
 };
 
@@ -2309,6 +2309,12 @@ module = {
 module = {
   name = efi_gop;
   efi = video/efi_gop.c;
+  enable = efi;
+};
+
+module = {
+  name = efifb;
+  efi = commands/efi/efifb.c;
   enable = efi;
 };
 
