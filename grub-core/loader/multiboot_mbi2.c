@@ -268,7 +268,8 @@ grub_multiboot2_load (grub_file_t file, const char *filename)
 
       case MULTIBOOT_HEADER_TAG_EFI_BS:
 #ifdef GRUB_MACHINE_EFI
-	keep_bs = 1;
+  if (grub_slaunch_platform_type () == SLP_NONE)
+    keep_bs = 1;
 #endif
 	break;
 
