@@ -1069,6 +1069,17 @@ grub_txt_shutdown (void)
 }
 
 void
+grub_txt_err_show (void)
+{
+  grub_uint64_t data;
+  grub_uint8_t *data8 = (grub_uint8_t *) &data;
+
+  /* Only least significant 4 bytes have a meaning. */
+  data = grub_txt_reg_pub_readq (GRUB_TXT_ERRORCODE) & 0x00000000ffffffff;
+  grub_printf ("  TXT.ERRORCODE: 0x%08" PRIxGRUB_UINT64_T "\n", data);
+}
+
+void
 grub_txt_state_show (void)
 {
   grub_uint64_t data;
@@ -1101,9 +1112,7 @@ grub_txt_state_show (void)
 	       "    SECRETS.STS: %d\n", data,
 	       !!(data & GRUB_TXT_E2STS_SECRETS));
 
-  /* Only least significant 4 bytes have a meaning. */
-  data = grub_txt_reg_pub_readq (GRUB_TXT_ERRORCODE) & 0x00000000ffffffff;
-  grub_printf ("  TXT.ERRORCODE: 0x%08" PRIxGRUB_UINT64_T "\n", data);
+  grub_txt_err_show();
 
   data = grub_txt_reg_pub_readq (GRUB_TXT_DIDVID);
   grub_printf ("  TXT.DIDVID: 0x%016" PRIxGRUB_UINT64_T "\n"

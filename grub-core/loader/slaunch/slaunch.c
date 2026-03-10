@@ -204,7 +204,18 @@ grub_cmd_slaunch_state (grub_command_t cmd __attribute__ ((unused)),
   return GRUB_ERR_NONE;
 }
 
-static grub_command_t cmd_slaunch, cmd_slaunch_module, cmd_slaunch_state;
+static grub_err_t
+grub_cmd_slaunch_err (grub_command_t cmd __attribute__ ((unused)),
+			int argc __attribute__ ((unused)),
+			char *argv[] __attribute__ ((unused)))
+{
+  if (slp == SLP_INTEL_TXT)
+    grub_txt_err_show ();
+
+  return GRUB_ERR_NONE;
+}
+
+static grub_command_t cmd_slaunch, cmd_slaunch_module, cmd_slaunch_state, cmd_slaunch_err;
 
 GRUB_MOD_INIT (slaunch)
 {
@@ -215,6 +226,8 @@ GRUB_MOD_INIT (slaunch)
 					      NULL, N_("Load secure launcher module from file"));
   cmd_slaunch_state = grub_register_command ("slaunch_state", grub_cmd_slaunch_state,
 					     NULL, N_("Display secure launcher state"));
+  cmd_slaunch_err = grub_register_command ("slaunch_err", grub_cmd_slaunch_err,
+					     NULL, N_("Display secure launcher err"));
 }
 
 GRUB_MOD_FINI (slaunch)
