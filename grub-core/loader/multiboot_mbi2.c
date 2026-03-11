@@ -755,6 +755,23 @@ retrieve_video_parameters (grub_properly_aligned_t **ptrorig)
   return GRUB_ERR_NONE;
 }
 
+static void
+mbi_hexdump (void *buf, grub_uint32_t phys, grub_uint32_t len)
+{
+  unsigned i;
+
+  grub_dprintf ("mbi", "MBI at %p (phys 0x%x), size 0x%x (%u)\n",
+		buf, phys, len, len);
+  for (i = 0; i < len; i += 16)
+    {
+      unsigned j;
+      grub_dprintf ("mbi", "%04x:", i);
+      for (j = i; j < i + 16 && j < len; j++)
+	grub_dprintf ("mbi", " %02x", ((grub_uint8_t *) buf)[j]);
+      grub_dprintf ("mbi", "\n");
+    }
+}
+
 grub_err_t
 grub_multiboot2_make_mbi (grub_uint32_t *target, grub_uint32_t *size)
 {
@@ -1061,6 +1078,8 @@ grub_multiboot2_make_mbi (grub_uint32_t *target, grub_uint32_t *size)
 
   ((grub_uint32_t *) mbistart)[0] = *size;
   ((grub_uint32_t *) mbistart)[1] = 0;
+
+  mbi_hexdump (mbistart, *target, *size);
 
   return GRUB_ERR_NONE;
 }
