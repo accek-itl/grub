@@ -41,6 +41,7 @@
 #include <grub/i386/linux.h>
 #include <grub/i386/pci.h>
 #include <grub/i386/psp.h>
+#include <grub/i386/cpuid.h>
 
 struct psp_drtm_interface
 {
@@ -111,7 +112,7 @@ static const char *drtm_status_strings[] = {
 	"DRTM_GET_IVRS_TABLE_FAILED"
 };
 
-static grub_err_t init_drtm_interface (grub_addr_t base_addr, psp_version_t version);
+static grub_err_t init_drtm_interface (grub_addr_t base_addr);
 static void init_drtm_device (grub_pci_device_t dev);
 static int drtm_wait_for_psp_ready (grub_uint32_t *status);
 
@@ -213,13 +214,16 @@ grub_psp_discover (void)
     return grub_error (GRUB_ERR_BAD_DEVICE, N_("DRTM: failed to find PSP\n"));
 
 psp_found:
+  grub_dprintf ("slaunch", "DRTM: Found AMD SP device with PSP (PCI info: 0x%04x, 0x%04x), PSP version: %d\n",
+                psp->vendor_id, psp->dev_id, psp->version);
+
   init_drtm_device (dev);
 
   bar2_addr = get_psp_bar_addr();
   if (!bar2_addr)
     return grub_error (GRUB_ERR_BAD_DEVICE, N_("DRTM: failed to find PSP\n"));
 
-  err = init_drtm_interface (bar2_addr, psp->version);
+  err = init_drtm_interface (bar2_addr);
   if (err)
     return err;
 
@@ -267,19 +271,28 @@ init_drtm_device (grub_pci_device_t dev)
 }
 
 static grub_err_t
-init_drtm_interface (grub_addr_t base_addr, psp_version_t version)
+init_drtm_interface (grub_addr_t base_addr)
 {
-  switch (version)
+  grub_uint32_t eax, ebx, ecx, edx;
+  grub_cpuid (1, eax, ebx, ecx, edx);
+  grub_dprintf ("slaunch", "CPUID(1): EAX=0x%08x\n", eax);
+
+  switch (eax & 0x0fff0f00)
     {
-    case PSP_V2:
-    case PSP_V3:
+    case 0x00860f00:
+    case 0x00a40f00:
+      grub_dprintf ("slaunch", "init_drtm_interface: using register layout B\n");
+      psp_drtm.c2pmsg_72 = (volatile grub_uint32_t *)(base_addr + 0x10a20);
+      psp_drtm.c2pmsg_93 = (volatile grub_uint32_t *)(base_addr + 0x10aa0);
+      psp_drtm.c2pmsg_94 = (volatile grub_uint32_t *)(base_addr + 0x10aa4);
+      psp_drtm.c2pmsg_95 = (volatile grub_uint32_t *)(base_addr + 0x10aa8);
+      break;
+    default:
+      grub_dprintf ("slaunch", "init_drtm_interface: using register layout A (default)\n");
       psp_drtm.c2pmsg_72 = (volatile grub_uint32_t *)(base_addr + 0x10a20);
       psp_drtm.c2pmsg_93 = (volatile grub_uint32_t *)(base_addr + 0x10a74);
       psp_drtm.c2pmsg_94 = (volatile grub_uint32_t *)(base_addr + 0x10a78);
       psp_drtm.c2pmsg_95 = (volatile grub_uint32_t *)(base_addr + 0x10a7c);
-      break;
-    default:
-      return grub_error (GRUB_ERR_BAD_DEVICE, N_("DRTM: Unrecognized PSP version %d\n"), version);
     }
 
   return GRUB_ERR_NONE;
