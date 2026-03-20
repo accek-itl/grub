@@ -418,6 +418,11 @@ module = {
   common = commands/increment.c;
 };
 
+module = {
+  name = debugmem;
+  common = commands/debugmem.c;
+};
+
 program = {
   name = grub-emu;
   mansection = 1;
