@@ -162,6 +162,9 @@ grub_skinit_psp_memory_protect (struct grub_slaunch_params *slparams)
   if (err != GRUB_ERR_NONE)
     return err;
 
+  if (!grub_drtm_is_enabled ())
+    return grub_error (GRUB_ERR_BAD_DEVICE, N_("DRTM is not enabled on this platform"));
+
   err = grub_drtm_setup_tmrs (tmr_end);
   if ( err != GRUB_ERR_NONE)
     return err;

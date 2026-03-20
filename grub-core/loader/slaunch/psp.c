@@ -363,7 +363,34 @@ grub_drtm_get_capability (void)
   drtm_capability.tmr_alignment = reg_val & 0x00FFFFFF;
   drtm_capability.tmr_count = (reg_val & 0xFF000000) >> 24;
 
+  grub_dprintf ("slaunch", "drtm_get_capt:\n"
+		"      c2pmsg_93 = 0x%x\n"
+		"      c2pmsg_94 = 0x%x\n"
+		"      c2pmsg_95 = 0x%x\n",
+		*psp_drtm.c2pmsg_93,
+		*psp_drtm.c2pmsg_94,
+		*psp_drtm.c2pmsg_95);
+  grub_dprintf ("slaunch", "drtm_get_capt:\n"
+		"      drtm_enabled = %d\n"
+		"      tsme_enabled = %d\n"
+		"      anti-rollback: %d\n"
+		"      version = 0x%x\n"
+		"      tmr_align = 0x%x\n"
+		"      tmr_count = %d\n",
+		drtm_capability.drtm_enabled,
+		drtm_capability.tsme_enabled,
+		drtm_capability.anti_rollback_status_bit,
+		drtm_capability.version,
+		drtm_capability.tmr_alignment,
+		drtm_capability.tmr_count);
+
   return GRUB_ERR_NONE;
+}
+
+bool
+grub_drtm_is_enabled (void)
+{
+  return drtm_capability.drtm_enabled;
 }
 
 /**
