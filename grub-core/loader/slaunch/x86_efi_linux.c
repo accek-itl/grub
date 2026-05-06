@@ -329,10 +329,15 @@ grub_sl_efi_txt_setup (struct grub_slaunch_params *slparams, void *kernel_addr,
   slparams->mle_start = image_base + start;
   slparams->mle_size = image_size - start;
 
-  /* Setup the TXT ACM page tables */
-  grub_txt_setup_mle_ptab (slparams);
-
-  /* Allocate a block of memory for Secure Launch entities */
+  /*
+   * Allocate slmem first; sl_efi_load_mle_data does not depend on the
+   * MLE page tables, but it does correct slparams->mle_size to the value
+   * reported by the MLE header. We must apply that correction BEFORE
+   * grub_txt_setup_mle_ptab, otherwise the page tables would map the
+   * full image (e.g. a unified Xen image with kernel/initramfs PE
+   * sections appended), and SINIT would reject the launch when the
+   * mappings extend past the actual MLE end declared in the header.
+   */
   slmem = sl_efi_txt_setup_slmem (slparams, (grub_efi_physical_address_t)addr,
                                   &slmem_size);
   if (!slmem)
@@ -347,6 +352,9 @@ grub_sl_efi_txt_setup (struct grub_slaunch_params *slparams, void *kernel_addr,
       grub_dprintf ("slaunch", N_("failed to load MLE data\n"));
       goto fail;
     }
+
+  /* Setup the TXT ACM page tables (now that mle_size matches the header) */
+  grub_txt_setup_mle_ptab (slparams);
 
   /* Final stage for secure launch, setup TXT and install the SLR table */
   err = grub_txt_boot_prepare (slparams);
