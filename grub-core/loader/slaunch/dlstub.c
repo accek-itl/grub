@@ -54,6 +54,19 @@ void dl_entry (grub_uint64_t dl_ctx)
     {
       grub_tpm_relinquish_locality (0);
 
+      /*
+       * Disable VT-d DMA remapping. Must happen after ExitBootServices
+       * (firmware EBS callbacks may still drive DMA through VT-d) and
+       * before GETSEC[SENTER] (SINIT ACM rejects launch unless remap is
+       * off).
+       */
+      err = grub_txt_disable_vtd ();
+      if (err != GRUB_ERR_NONE)
+        {
+          grub_error (GRUB_ERR_BAD_DEVICE, N_("disabling VT-d DMA remap failed"));
+          return;
+        }
+
       err = grub_set_mtrrs_for_acmod ((void *)(grub_addr_t)slparams->dce_base);
       if (err)
         {

@@ -734,5 +734,6 @@ extern void grub_txt_shutdown (void);
 extern void grub_txt_err_show (void);
 extern void grub_txt_state_show (void);
 extern grub_err_t grub_txt_boot_prepare (struct grub_slaunch_params *slparams);
+extern grub_err_t grub_txt_disable_vtd (void);
 
 #endif

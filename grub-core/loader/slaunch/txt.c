@@ -562,8 +562,8 @@ grub_txt_init_tpm_event_log (void *buf, grub_size_t size)
   elog->next_event_offset = sizeof (*elog);
 }
 
-static grub_err_t
-configure_vtd (void)
+grub_err_t
+grub_txt_disable_vtd (void)
 {
   grub_err_t err;
   grub_uint32_t remap_length;
@@ -572,11 +572,11 @@ configure_vtd (void)
   if (dmar_remap == NULL)
     {
       grub_dprintf ("slaunch",
-                    "configure_vtd: cannot get DMAR remapping structures, skipping configuration\n");
+                    "disable_vtd: cannot get DMAR remapping structures, skipping\n");
       return GRUB_ERR_NONE;
     }
 
-  grub_dprintf ("slaunch", "configure_vtd: configuring DMAR remapping\n");
+  grub_dprintf ("slaunch", "disable_vtd: disabling DMAR remapping\n");
 
   struct grub_acpi_dmar_remapping *iter, *next;
   struct grub_acpi_dmar_remapping *end = (struct grub_acpi_dmar_remapping *) ((grub_addr_t)dmar_remap + remap_length);
@@ -588,13 +588,13 @@ configure_vtd (void)
       if (iter->length == 0)
       {
         /* Avoid looping forever on bad ACPI tables */
-        grub_dprintf ("slaunch", "configure_vtd: invalid 0-length structure\n");
+        grub_dprintf ("slaunch", "disable_vtd: invalid 0-length structure\n");
         break;
       }
       else if (next > end)
       {
         /* Avoid passing table end */
-        grub_dprintf ("slaunch", "configure_vtd: record passes table end\n");
+        grub_dprintf ("slaunch", "disable_vtd: record passes table end\n");
         break;
       }
 
@@ -604,19 +604,19 @@ configure_vtd (void)
         err = vtd_disable_ire (iter);
         if (err != GRUB_ERR_NONE)
         {
-          grub_dprintf ("slaunch", "configure_vtd: vtd_disable_ire failed\n");
+          grub_dprintf ("slaunch", "disable_vtd: vtd_disable_ire failed\n");
           break;
         }
         err = vtd_disable_qie (iter);
         if (err != GRUB_ERR_NONE)
         {
-          grub_dprintf ("slaunch", "configure_vtd: vtd_disable_qie failed\n");
+          grub_dprintf ("slaunch", "disable_vtd: vtd_disable_qie failed\n");
           break;
         }
         err = vtd_disable_dma_remap (iter);
         if (err != GRUB_ERR_NONE)
         {
-          grub_dprintf ("slaunch", "configure_vtd: vtd_disable_dma_remap failed\n");
+          grub_dprintf ("slaunch", "disable_vtd: vtd_disable_dma_remap failed\n");
           break;
         }
         counter++;
@@ -624,7 +624,7 @@ configure_vtd (void)
     }
 
   if (err == GRUB_ERR_NONE)
-    grub_dprintf ("slaunch", "configure_vtd: successfully disabled %d remappings\n", counter);
+    grub_dprintf ("slaunch", "disable_vtd: successfully disabled %d remappings\n", counter);
 
   return err;
 }
@@ -1202,14 +1202,6 @@ grub_txt_boot_prepare (struct grub_slaunch_params *slparams)
     return err;
 
   grub_dprintf ("slaunch", "TXT heap successfully prepared\n");
-
-  /* Disable DMA remapping */\
-  err = configure_vtd();
-
-  if (err != GRUB_ERR_NONE)
-    return err;
-
-  grub_dprintf ("slaunch", "DMA mappings disabled for secure launch\n");
 
   slparams->dce_base = (grub_uint32_t)(grub_addr_t) sinit_base;
   slparams->dce_size = sinit_base->size * 4;
