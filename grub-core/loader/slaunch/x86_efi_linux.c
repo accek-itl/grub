@@ -53,7 +53,7 @@ sl_efi_install_slr_table (struct grub_slaunch_params *slparams)
   b = grub_efi_system_table->boot_services;
   status = b->install_configuration_table (&slrt_guid, (void *)slparams->slr_table_base);
   if (status != GRUB_EFI_SUCCESS)
-    return grub_error (GRUB_ERR_BAD_OS, "cannot load image");
+    return grub_error (GRUB_ERR_BAD_OS, "cannot install SLRT in EFI configuration table");
 
   return GRUB_ERR_NONE;
 }
